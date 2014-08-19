@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cxf="http://cxf.apache.org/core"
+	xmlns:jaxws="http://cxf.apache.org/jaxws" xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+			http://cxf.apache.org/core http://cxf.apache.org/schemas/core.xsd
+			http://www.springframework.org/schema/beans 
+			http://www.springframework.org/schema/beans/spring-beans.xsd 
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context-2.5.xsd
+			http://cxf.apache.org/jaxrs http://cxf.apache.org/schemas/jaxrs.xsd
+			http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd">
+
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+
+	<context:component-scan base-package="org.cxf.spring.rest.stock" />
+
+	<cxf:bus>
+		<cxf:features>
+			<cxf:logging />
+		</cxf:features>
+	</cxf:bus>
+
+	<bean id="jsonProvider" class="org.codehaus.jackson.jaxrs.JacksonJsonProvider" />
+
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/hibernate" />
+		<property name="username" value="root" />
+		<property name="password" value="root" />
+	</bean>
+
+	<!-- Hibernate session factory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+			</props>
+		</property>
+
+		<property name="annotatedClasses">
+			<list>
+				<value>org.cxf.spring.rest.stock.model.Stock</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="stockDao" class="org.cxf.spring.rest.stock.dao.impl.StockDaoImpl"/>
+	
+	<bean id="stockBoImpl" class="org.cxf.spring.rest.stock.bo.impl.StockBoImpl">
+		<property name="stockDao" ref="stockDao" />
+	</bean>
+
+	<bean id="stockManagementServiceImpl"
+		class="org.cxf.spring.rest.services.impl.StockManagementServiceImpl">
+		<property name="stockBoImpl" ref="stockBoImpl"></property>
+	</bean>
+
+	<bean id="stockManagementControllerImpl"
+		class="org.cxf.spring.rest.controllers.impl.StockManagementControllerImpl">
+		<property name="stockManagementServiceImpl" ref="stockManagementServiceImpl" />
+	</bean>
+
+	<jaxrs:server id="stockManagerREST" address="/rest/StockManager">
+		<jaxrs:serviceBeans>
+			<ref bean="stockManagementControllerImpl" />
+		</jaxrs:serviceBeans>
+		<jaxrs:providers>
+			<ref bean='jsonProvider' />
+		</jaxrs:providers>
+	</jaxrs:server>
+
+</beans>
